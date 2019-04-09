@@ -3,13 +3,13 @@
 ## Description
 This script controls the fans in a Dell R720xd based on CPU and ambient temperature readings from the server's iDRAC controller. Temperture is read using `SNMPWALK`. Optionally the temperature can be read using `IPMITOOL` but I found this to slower than using SNMP. Fan speed is set using `IPMITOOL`.
 
-This script is written in bash so it requires a program called bc (basic calculator) to do multiplication.
+This script is written in bash so it requires a program called `bc` (basic calculator) to do multiplication. You could port this to Python and you wouldn't need `bc`.
 
 The OIDs used for SNMP are for a Dell R720xd. If you have a different server you will need to modify the `SNMPWALK` and `IPMITOOL` commands.
 
 The fan speed control utilizes a PID controller, but it only lowers the temperature if too high and does not try to increase it to meet the target. Instead I have chosen to set low speed boundaries based on ambient temperature so that the CPU temperature can go way below the maximum temperature.
 
-Kp, Ki, and Kd are used to tune the behavior of the PID controller in response to temperature changes. You'll have to research these on your own to determine how to tune them. The descriptions in the comments of the script file were copied from another example and may not be correct.
+Kp, Ki, and Kd are gain parameters used to tune the behavior of the PID controller in response to temperature changes. You'll have to research these on your own to determine how to tune them. The descriptions in the comments of the script file were copied from another example and may not be correct.
 
 ## Required Tools
 There are 3 tools you need to load into your machine:
@@ -44,6 +44,7 @@ WantedBy=multi-user.target
 ``sudo systemctl start tempcontrol``
 
 **Set fan speed to automatic in event of failure**
+
 I've not tested this, but `ExecStopPost` is supposed to execute when the service terminates improperly (not with SYSTEMCTL STOP) and `Restart=always` is supposed to restart the script in the event of a failure. 
 
 The following is what I use to set fan speed control to automatic:
@@ -58,11 +59,11 @@ Each time the script polls the temperature and sets the fan speed, a line is wri
 
 Data being logged:
 
-PID, P, I, D, Derivative, Integral, Error, MaxCPUtemp, Fan(%), prior-fanspeed
+PID, P, I, D, Derivative, Integral, Error, MaxCPUtemp, Fan(%), prior fanspeed
 
 ## Monitoring
 
 I use [healthchecks.io](http://healthchecks.io) to monitor if the script is running. The script calls a particular URL to tell healthchecks.io that it's still alive. If healthchecks.io doesn't get refreshed in a predetermined amount of time, a notification is sent.
 
-Every once in a while healthchecks.io gets triggered and I can see in journalctl that a line or 2 (based on timestamp) are missing, but it always comes back. I've not been able to determine the root cause. It could have to do with other SNMP calls that are made by telegraf that does data collection from grafana.
+Every once in a while healthchecks.io gets triggered and I can see in journalctl that a line or 2 (based on timestamp) are missing, but it always comes back. I've not been able to determine the root cause. It could have to do with other SNMP calls that are made by telegraf that does data collection for grafana.
 
